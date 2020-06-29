@@ -33,14 +33,14 @@ if __name__ == '__main__':
     #status, res = w.send_msg_to_multiuser(external_userid_li=['wmb82tCgAAsSbiFIIYcO_T-_ZVi3T4vw',], msg_type='text', content='Greetings from Django')
     #status, res = w.get_group_msg_result('msgb82tCgAAgrXmwKrDqNIeY8QGlM5HNA')
     #status, res = w.get_contact_way("8ce274acc7e3592307bd6c9403a4b740")
-
+    status, res = w.get_contact_way("8ce274acc7e3592307bd6c9403a4b740")
     #status, res = w.get_unassigned_list()
     #status, res = w.transfer_external_user('wmb82tCgAA6-zMo6u9fSkU6gN0IRWRWQ', 'LinDa-Shang', 'GuoDan')
 
     # Department
     #status, res = w.get_users_in_department_detail(2)
-    # print(status)
-    # print(res)
+    print(status)
+    print(res)
 
     # Material
 #    filepath = '/Users/yqj/Downloads/IMG_8609.jpg'
@@ -51,8 +51,8 @@ if __name__ == '__main__':
 #    status, res = w.upload_media('image', media_file)
 #    print(status)
 #    print(res)
-    img_file = w.get_media('3U19BA1rF6OQ8mT5SVZMVQI66dOrZMS-dY3KubR_iPQw1G8o0_X8pLLLyye3JANxC')
-    print(img_file)
+    #img_file = w.get_media('3U19BA1rF6OQ8mT5SVZMVQI66dOrZMS-dY3KubR_iPQw1G8o0_X8pLLLyye3JANxC')
+    #print(img_file)
 
 
 
