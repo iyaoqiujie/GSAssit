@@ -35,9 +35,9 @@ class GSAssitCallBack(View):
 #        myLogger.debug('EchoStr: {0}'.format(sEchoStr))
 #        return HttpResponse(sEchoStr)
 
-        sReqMsgSig = request.args.get('msg_signature')
-        sReqTimeStamp = request.args.get('timestamp')
-        sReqNonce = request.args.get('nonce')
+        sReqMsgSig = params.get('msg_signature')
+        sReqTimeStamp = params.get('timestamp')
+        sReqNonce = params.get('nonce')
         myLogger.debug('{0}, {1}, {2}'.format(sReqMsgSig, sReqTimeStamp, sReqNonce))
         sReqData = request.get_data(as_text=True)
         ret, sMsg = wxcpt.DecryptMsg(sReqData, sReqMsgSig, sReqTimeStamp, sReqNonce)
