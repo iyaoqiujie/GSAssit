@@ -8,6 +8,8 @@ from django.views.generic import TemplateView
 from rest_framework.schemas import get_schema_view
 from rest_framework_jwt.views import obtain_jwt_token, refresh_jwt_token, verify_jwt_token
 
+from workwechat_assist.externalcontact.views import gsassist_callback_view
+
 schema_view = get_schema_view(title='GSAsist API')
 urlpatterns = [
     path("", TemplateView.as_view(template_name="pages/home.html"), name="home"),
@@ -18,7 +20,6 @@ urlpatterns = [
     path(settings.ADMIN_URL, admin.site.urls),
     # User management
     path("users/", include("workwechat_assist.users.urls", namespace="users")),
-    path("external/", include("workwechat_assist.externalcontact.urls", namespace="external")),
     path("accounts/", include("allauth.urls")),
     # Your stuff: custom urls includes go here
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
@@ -34,6 +35,7 @@ urlpatterns += [
     path("api/token-auth/", obtain_jwt_token),
     path("api/token-refresh/", refresh_jwt_token),
     path("api/token-verify/", verify_jwt_token),
+    path('weworkcall', view=gsassist_callback_view, name='weworkcall'),
 ]
 
 if settings.DEBUG:

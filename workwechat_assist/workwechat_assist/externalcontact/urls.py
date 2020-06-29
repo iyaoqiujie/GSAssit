@@ -9,6 +9,6 @@ from workwechat_assist.externalcontact.views import gsassist_callback_view
 
 app_name = 'external'
 urlpatterns = [
-    path('weworkcall/', view=gsassist_callback_view, name='weworkcall'),
+    path('weworkcall', view=gsassist_callback_view, name='weworkcall'),
 ]
 
