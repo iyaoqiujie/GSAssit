@@ -3,7 +3,10 @@ from django.views import View
 from django.http import HttpResponse, HttpResponseBadRequest
 from django.views.decorators.csrf import csrf_protect, csrf_exempt
 from django.utils.decorators import method_decorator
+from workwechat_assist.externalcontact.models import ContactMe
+from workwechat_assist.corporation.models import CorpApp, Corporation
 from .WXBizMsgCrypt3 import WXBizMsgCrypt
+from workwechat_assist.utils.workwechat_sdk import WorkWechat
 import xml.etree.cElementTree as ET
 import logging
 
@@ -41,6 +44,14 @@ class GSAssitCallBack(View):
         sToken = "mLOLPDZdSVqAMCxFEFu7DRBeU7HK"
         sEncodingAESKey = "GrVwDhSRfY4k2tjfVwcmjd3aqcAawbNsHqVYk3MQeNM"
         sCorpID = "wwcfaf880742304045"
+        corp = 1
+
+        wechat = None
+        try:
+            myapp = CorpApp.objects.get(corp=corp, agent_id='crm')
+            wechat = WorkWechat(myapp)
+        except CorpApp.DoesNotExist:
+            myLogger.error('Corp:[{0}], Agent:[crm] does NOT exist'.format(corp))
         wxcpt = WXBizMsgCrypt(sToken, sEncodingAESKey, sCorpID)
 
         params = request.GET
@@ -63,14 +74,33 @@ class GSAssitCallBack(View):
         event = xml_tree.find('Event').text
         changeType = xml_tree.find('ChangeType').text
         myLogger.debug('Event: [{0}], type:[{1}]'.format(event, changeType))
-        
-        if event == 'change_external_contact' and xml_tree.find('ChangeType').text == 'add_external_contact':
-            userid = xml_tree.find('UserID').text
-            externaluserid = xml_tree.find('ExternalUserID').text
 
-            state = xml_tree.find('State').text
-            welcomecode = xml_tree.find('WelcomeCode').text
-            myLogger.debug('{0}, {1}, {2}, {3}'.format(userid, externaluserid, state, welcomecode))
+        if event == 'change_external_contact':
+            if xml_tree.find('ChangeType').text == 'add_external_contact':
+                userid = xml_tree.find('UserID').text
+                externaluserid = xml_tree.find('ExternalUserID').text
+
+                state = xml_tree.find('State').text
+                welcomecode = xml_tree.find('WelcomeCode').text
+                myLogger.debug('{0}, {1}, {2}, {3}'.format(userid, externaluserid, state, welcomecode))
+
+                contactme = ContactMe.objects.filter(state=state)
+                if contactme.count() == 0:
+                    return HttpResponse('OK')
+
+                # Set tags
+                status, res = wechat.mark_tag(userid, externaluserid, add_tag=contactme[0].tags)
+                if not status:
+                    myLogger.error(res.get('errmsg'))
+
+                # Send Welcome
+                welcome_msg = contactme[0].welcome_code
+                welcome_msg['welcome_code'] = welcomecode
+                myLogger.debug(welcome_msg)
+                status, res = wechat.send_welcome_msg(welcome_msg)
+                if not status:
+                    myLogger.error(res.get('errmsg'))
+                    
         return HttpResponse('OK')
 
         # state = xml_tree.find('State').text

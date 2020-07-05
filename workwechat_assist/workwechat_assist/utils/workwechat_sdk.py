@@ -786,6 +786,12 @@ class WorkWechat(object):
         status, res = self.__post(url, data)
         return status, res
 
+    def send_welcome_msg(self, msg_data):
+        url = '{0}/externalcontact/send_welcome_msg?access_token={1}'.format(self.url_prefix, self.access_token)
+
+        status, res = self.__post(url, msg_data)
+        return status, res
+
     def del_contact_way(self, config_id):
         url = '{0}/externalcontact/del_contact_way?access_token={1}'.format(self.url_prefix, self.access_token)
         data = {
