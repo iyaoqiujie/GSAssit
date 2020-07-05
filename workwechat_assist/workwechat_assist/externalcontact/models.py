@@ -69,7 +69,7 @@ class Customer(models.Model):
     corp_name = models.CharField(verbose_name='企业简称', max_length=32, blank=True, default='')
     corp_full_name = models.CharField(verbose_name='企业全称', max_length=32, blank=True, default='')
     external_profile = JSONField(verbose_name='自定义展示信息', null=True, blank=True)
-    member = models.ManyToManyField(Member, through='CustomerFollowUserRelationship')
+    members = models.ManyToManyField(Member, through='CustomerFollowUserRelationship')
     created = models.DateTimeField(verbose_name='创建时间', auto_now_add=True)
 
     class Meta:
@@ -91,9 +91,10 @@ class CustomerFollowUserRelationship(models.Model):
     remark_corp_name = models.CharField(verbose_name='备注企业', max_length=32, blank=True, default='')
     createtime = models.PositiveIntegerField(verbose_name='添加联系人时间', null=True)
     tags = JSONField(verbose_name='客户标签', null=True)
-    remark_mobiles = models.CharField(verbose_name='备注手机号码', max_length=32, blank=True, default='')
+    remark_mobiles = JSONField(verbose_name='备注手机号码', null=True, blank=True)
     add_way = models.SmallIntegerField(verbose_name='客户来源', default=3)
     state = models.CharField(verbose_name='自定义来源', max_length=64,  blank=True)
+    deleted = models.BooleanField(verbose_name='客户流失', default=False)
 
     class Meta:
         unique_together = (('member', 'customer'),)
@@ -125,8 +126,8 @@ class TagGroup(models.Model):
 
 class Tag(models.Model):
     id = models.BigAutoField(primary_key=True)
-    taggroup = models.ForeignKey(TagGroup, related_name='tags', on_delete=models.CASCADE,
-                                 verbose_name='标签组')
+    taggroup = models.ForeignKey(TagGroup, related_name='tags',
+                                 on_delete=models.CASCADE, verbose_name='标签组')
     tagname = models.CharField(verbose_name='标签名称', max_length=32)
     tagid = models.CharField(verbose_name='标签ID', max_length=64, blank=True)
     create_time = models.PositiveIntegerField(verbose_name='创建时间', null=True)

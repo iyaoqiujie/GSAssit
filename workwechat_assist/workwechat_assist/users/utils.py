@@ -17,5 +17,6 @@ def jwt_response_payload_handler(token, user=None, request=None):
         'email': user.email,
         'roles': user.role,
         'nickName': user.nickName,
+        'avatar': user.avatar.url,
         'avatarUrl': user.avatarUrl,
     }

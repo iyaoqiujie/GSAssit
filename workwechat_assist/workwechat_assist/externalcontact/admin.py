@@ -16,7 +16,7 @@ class ContactMeAdmin(admin.ModelAdmin):
 
 @admin.register(Customer)
 class CustomerAdmin(admin.ModelAdmin):
-    raw_id_fields = ('corp', 'member')
+    raw_id_fields = ('corp', 'members')
     list_display = ('id', 'name', 'avatar', 'type', 'gender', 'position',)
     search_fields = ('name',)
     ordering = ('-created',)

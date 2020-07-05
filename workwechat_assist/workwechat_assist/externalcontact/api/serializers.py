@@ -65,7 +65,9 @@ class ContactMeSerializer(serializers.ModelSerializer):
                                 style=validated_data.get('style', 1),
                                 remark=validated_data.get('remark', ''),
                                 skip_verify=validated_data.get('skip_verify', True),
-                                state=validated_data.get('state', ''))
+                                state=validated_data.get('state', ''),
+                                tags=validated_data.get('tags', []),
+                                welcome_code=validated_data.get('welcome_code', {}))
 
         status, res = wechat.get_contact_way(config_id)
         if not status:
@@ -128,14 +130,35 @@ class CustomerSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
+class CustomJsonField(serializers.JSONField):
+    default_error_messages = {
+        'invalid_json': '无效的json数据格式'
+    }
+
+    def to_representation(self, value):
+        return json.loads(value)
+
+    def to_internal_value(self, data):
+        try:
+            data = json.dumps(data)
+        except (TypeError, ValueError):
+            self.fail('invalid_json')
+        return data
+
+
 class CustomerFollowUserRelationshipSerializer(serializers.ModelSerializer):
     code = serializers.IntegerField(default=20000, read_only=True)
     member_name = serializers.ReadOnlyField(source='member.name')
     customer_name = serializers.ReadOnlyField(source='customer.name')
     tags = serializers.SerializerMethodField()
+    #remark_mobiles = serializers.SerializerMethodField()
+    remark_mobiles = CustomJsonField()
 
     def get_tags(self, obj):
         return json.loads(obj.tags)
+
+    #def get_remark_mobiles(self, obj):
+    #   return json.loads(obj.remark_mobiles)
 
     class Meta:
         model = CustomerFollowUserRelationship
@@ -147,8 +170,8 @@ class CustomerFollowUserRelationshipSerializer(serializers.ModelSerializer):
         description = validated_data.get('description', instance.description)
         remark_corp_name = validated_data.get('remark_corp_name', instance.description)
         remark_mobiles = validated_data.get('remark_mobiles', instance.remark_mobiles)
-        mobile_li = remark_mobiles.split(',')
 
+        myLogger.debug('rms: {0}'.format(remark_mobiles))
         try:
             myapp = CorpApp.objects.get(corp=instance.member.corp, agent_id=AGENT_ID)
         except CorpApp.DoesNotExist:
@@ -159,7 +182,8 @@ class CustomerFollowUserRelationshipSerializer(serializers.ModelSerializer):
                                                                remark=remark,
                                                                description=description,
                                                                remark_company=remark_corp_name,
-                                                               remark_mobiles=mobile_li)
+                                                               remark_mobiles=json.loads(remark_mobiles))
+        myLogger.debug('{0}:{1}'.format(status, res))
         if not status:
             raise serializers.ValidationError(res.get("errmsg"))
 
@@ -179,7 +203,7 @@ class TagGroupSerializer(serializers.ModelSerializer):
     def get_tags(self, obj):
         res = []
         for tag in obj.tags.all():
-            res.append({'tagname':tag.tagname, 'tagid':tag.tagid})
+            res.append({'id': tag.id, 'tagname': tag.tagname, 'tagid': tag.tagid})
         return res
 
     class Meta:
@@ -190,13 +214,15 @@ class TagGroupSerializer(serializers.ModelSerializer):
 class TagSerializer(serializers.ModelSerializer):
     code = serializers.IntegerField(default=20000, read_only=True)
     group_name = serializers.CharField(required=False, write_only=True)
+    corpid = serializers.IntegerField(default=1, write_only=True)
+    taggroup = serializers.ReadOnlyField(source='taggroup.id')
 
     class Meta:
         model = Tag
         fields = '__all__'
 
     def create(self, validated_data):
-        corpid=1
+        corpid = validated_data.get('corpid', 1)
         try:
             corp = Corporation.objects.get(id=corpid)
         except Corporation.DoesNotExist:

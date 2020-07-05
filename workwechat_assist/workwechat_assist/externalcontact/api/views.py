@@ -9,6 +9,7 @@ from rest_framework import permissions, authentication
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.decorators import action, api_view, permission_classes
+from rest_framework.serializers import ValidationError
 from rest_framework_jwt.authentication import JSONWebTokenAuthentication
 # Search, Ordering, Filter
 from rest_framework import filters
@@ -33,8 +34,9 @@ class ContactMeViewSet(viewsets.ModelViewSet):
     authentication_classes = (JSONWebTokenAuthentication, authentication.SessionAuthentication)
     permission_classes = [permissions.IsAuthenticated, permissions.IsAdminUser]
     filter_backends = (DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter)
-    search_fields = ('config_id', 'state',)
-    ordering_fields = ('-created',)
+    filter_fields = ('type', 'scene', 'skip_verify')
+    search_fields = ('config_id', 'state', 'remark')
+    ordering_fields = ('created',)
 
     def perform_destroy(self, instance):
         try:
@@ -45,8 +47,8 @@ class ContactMeViewSet(viewsets.ModelViewSet):
 
         status, res = WorkWechat(myapp).del_contact_way(instance.config_id)
         if not status:
-            myLogger.debug(res.get('errmsg'))
-            return
+            myLogger.error(res.get('errmsg'))
+            raise ValidationError(res.get('errmsg'))
         else:
             myLogger.debug('Successfully deleted the contactme: [{0}]'.format(instance.config_ids))
 
@@ -59,12 +61,12 @@ class CustomerViewSet(viewsets.ModelViewSet):
     authentication_classes = (JSONWebTokenAuthentication, authentication.SessionAuthentication)
     permission_classes = [permissions.IsAuthenticated, permissions.IsAdminUser]
     filter_backends = (DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter)
-    search_fields = ('name',)
-    ordering_fields = ('-created',)
+    search_fields = ('name', )
+    ordering_fields = ('created',)
 
     @action(detail=False, methods=['post'])
     def sync(self, request):
-        result = {'result': 'FAIL', 'message': ''}
+        result = {'result': 'FAIL', 'message': '', 'code': 20000}
         corpid = request.data.get('corpid')
         try:
             corp = Corporation.objects.get(id=corpid)
@@ -118,7 +120,7 @@ class CustomerViewSet(viewsets.ModelViewSet):
                     cfurel.createtime = f.get('createtime')
                     cfurel.remark_corp_name = f.get('remark_corp_name', '')
                     cfurel.add_way = f.get('add_way', 0)
-                    cfurel.remark_mobiles = ','.join(f.get('remark_mobiles'))
+                    cfurel.remark_mobiles = json.dumps(f.get('remark_mobiles')).encode('utf-8').decode('unicode_escape')
                     cfurel.tags = json.dumps(f.get('tags')).encode('utf-8').decode('unicode_escape')
                     cfurel.save()
                 except Member.DoesNotExist:
@@ -135,11 +137,11 @@ class CustomerFollowUserRelationshipViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated, permissions.IsAdminUser]
     filter_backends = (DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter)
     search_fields = ('member__name', 'customer__name',)
-    ordering_fields = ('-createtime',)
+    ordering_fields = ('createtime',)
 
     @action(detail=True, methods=['post'])
     def mark_tag(self, request, pk=None):
-        result = {'result': 'FAIL', 'message': ''}
+        result = {'result': 'FAIL', 'message': '', 'code': 20000}
         instance = self.get_object()
 
         try:
@@ -186,7 +188,7 @@ class TagGroupViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated, permissions.IsAdminUser]
     filter_backends = (DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter)
     search_fields = ('groupname',)
-    ordering_fields = ('-groupname',)
+    ordering_fields = ('create_time',)
 
 
 class TagViewSet(viewsets.ModelViewSet):
@@ -196,7 +198,78 @@ class TagViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated, permissions.IsAdminUser]
     filter_backends = (DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter)
     search_fields = ('taggroup__groupname', 'tagname')
-    ordering_fields = ('-groupname',)
+    ordering_fields = ('create_time',)
+
+    @action(detail=False, methods=['post'])
+    def sync(self, request):
+        result = {'result': 'FAIL', 'message': '', 'code': 20000}
+        corpid = request.data.get('corpid')
+        try:
+            corp = Corporation.objects.get(id=corpid)
+        except Corporation.DoesNotExist:
+            myLogger.error('公司[{0}]不存在'.format(corpid))
+            result['message'] = '公司[{0}]不存在'.format(corpid)
+            return Response(result)
+
+        try:
+            myapp = CorpApp.objects.get(corp=corp, agent_id='crm')
+        except CorpApp.DoesNotExist:
+            myLogger.error('应用获取失败')
+            result['message'] = '应用获取失败'
+            return Response(result)
+
+        wechat = WorkWechat(myapp)
+        status, res = wechat.get_corp_tag_list()
+        if not status:
+            result['message'] = res.get('errmsg')
+            return Response(result)
+
+        tag_groups = res.get('tag_group')
+        for g in tag_groups:
+            taggroup, created = TagGroup.objects.get_or_create(corp=corp, groupname=g.get('group_name'))
+            taggroup.groupid = g.get('group_id')
+            taggroup.create_time = g.get('create_time')
+            taggroup.order = g.get('order')
+            taggroup.save()
+
+            tags = g.get('tag')
+            for t in tags:
+                tag, created = Tag.objects.get_or_create(taggroup=taggroup, tagname=t.get('name'))
+                tag.tagid = t.get('id')
+                tag.create_time = t.get('create_time')
+                tag.order = t.get('order')
+                tag.save()
+
+        result['result'] = 'OK'
+        return Response(result)
+
+    def destroy(self, request, *args, **kwargs):
+        result = {'result': 'FAIL', 'message': '', 'code': 20000}
+        instance = self.get_object()
+        try:
+            myapp = CorpApp.objects.get(corp=instance.taggroup.corp, agent_id='crm')
+        except CorpApp.DoesNotExist:
+            myLogger.debug('Failed to delete the tag: [{0}]'.format(instance.tagname))
+            result['message'] = 'Failed to delete the tag: [{0}]'.format(instance.tagname)
+            return Response(result)
+
+        status, res = WorkWechat(myapp).delete_corp_tag([instance.tagid])
+        if not status:
+            myLogger.debug(res.get('errmsg'))
+            result['message'] = res.get('errmsg')
+            return Response(result)
+        else:
+            myLogger.debug('Successfully deleted the tag: [{0}]'.format(instance.tagname))
+
+        tgroup = instance.taggroup
+        instance.delete()
+
+        # If all the tags under the group were deleted, delete the taggroup
+        if tgroup.tags.count() == 0:
+            tgroup.delete()
+
+        result['result'] = 'OK'
+        return Response(result)
 
 
 class GroupChatViewSet(viewsets.ModelViewSet):
@@ -206,11 +279,11 @@ class GroupChatViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated, permissions.IsAdminUser]
     filter_backends = (DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter)
     search_fields = ('name', 'owner')
-    ordering_fields = ('-groupname',)
+    ordering_fields = ('create_time',)
 
     @action(detail=False, methods=['post'])
     def sync(self, request):
-        result = {'result': 'FAIL', 'message': ''}
+        result = {'result': 'FAIL', 'message': '', 'code': 20000}
         corpid = request.data.get('corpid')
         try:
             corp = Corporation.objects.get(id=corpid)
@@ -263,7 +336,7 @@ class GroupMessageViewSet(viewsets.ModelViewSet):
     authentication_classes = (JSONWebTokenAuthentication, authentication.SessionAuthentication)
     permission_classes = [permissions.IsAuthenticated, permissions.IsAdminUser]
     filter_backends = (DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter)
-    ordering_fields = ('-created',)
+    ordering_fields = ('created',)
 
 
 
