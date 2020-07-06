@@ -1,7 +1,8 @@
 from django.conf import settings
 from rest_framework.routers import DefaultRouter, SimpleRouter
+from django.urls import include, path
 
-from workwechat_assist.users.api.views import UserViewSet
+from workwechat_assist.users.api.views import UserViewSet, work_wx_login
 from workwechat_assist.corporation.api.views import CorporationViewSet, CorpAppViewSet, DepartmentViewSet, \
     MemberViewSet, TagViewSet
 from workwechat_assist.externalcontact.api.views import ContactMeViewSet, CustomerViewSet, \
@@ -29,3 +30,4 @@ router.register('groupmsg', GroupMessageViewSet)
 
 app_name = 'api'
 urlpatterns = router.urls
+urlpatterns += [path('wx_login/', work_wx_login)]

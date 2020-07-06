@@ -100,7 +100,7 @@ class GSAssitCallBack(View):
                 status, res = wechat.send_welcome_msg(welcome_msg)
                 if not status:
                     myLogger.error(res.get('errmsg'))
-                    
+
         return HttpResponse('OK')
 
         # state = xml_tree.find('State').text

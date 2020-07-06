@@ -79,18 +79,20 @@ class ContactMeSerializer(serializers.ModelSerializer):
 
         return a_contactme
 
-    def update(self, instance, vaidated_data):
+    def update(self, instance, validated_data):
         try:
             myapp = CorpApp.objects.get(corp=instance.corp, agent_id=AGENT_ID)
         except CorpApp.DoesNotExist:
             raise serializers.ValidationError('APP信息获取失败')
 
-        remark = vaidated_data.get('remark', instance.remark)
-        skip_verify = vaidated_data.get('skip_verify', instance.skip_verify)
-        style = vaidated_data.get('style', instance.style)
-        state = vaidated_data.get('state', instance.state)
-        user = vaidated_data.get('user', instance.user)
-        party = vaidated_data.get('party', instance.party)
+        remark = validated_data.get('remark', instance.remark)
+        skip_verify = validated_data.get('skip_verify', instance.skip_verify)
+        style = validated_data.get('style', instance.style)
+        state = validated_data.get('state', instance.state)
+        user = validated_data.get('user', instance.user)
+        party = validated_data.get('party', instance.party)
+        tags = validated_data.get('tags', instance.tags)
+        welcome_code = validated_data.get('welcome_code', instance.welcome_code)
 
         wechat = WorkWechat(myapp)
         status, res = wechat.update_contact_way(instance.config_id,
@@ -109,6 +111,8 @@ class ContactMeSerializer(serializers.ModelSerializer):
         instance.state = state
         instance.user = user
         instance.party = party
+        instance.tags = tags
+        instance.welcome_code = welcome_code
 
         status, res = wechat.get_contact_way(instance.config_id)
         if not status:
