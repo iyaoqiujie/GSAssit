@@ -100,6 +100,17 @@ class WorkWechat(object):
         res = requests.post(url, files=media_file).json()
         return self.__response(res)
 
+    # 授权登陆
+    def get_userid(self, code):
+        """
+        :param code: 通过成员授权获取到的code，最大为512字节。每次成员授权带上的code将不一样，code只能使用一次，5分钟未被使用自动过期。
+        :return:
+        """
+        url = "%s/user/getuserinfo?access_token=%s&code=%s" % (self.url_prefix, self.access_token, code)
+        status, res = self.__get(url)
+        return status, res
+
+
     # 部门管理
     def create_department(self, name, parentid=1, order=None):
         """
