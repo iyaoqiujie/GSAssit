@@ -12,6 +12,7 @@ from rest_framework_jwt.authentication import JSONWebTokenAuthentication
 from rest_framework_jwt.serializers import jwt_payload_handler, jwt_encode_handler
 from workwechat_assist.utils.workwechat_sdk import WorkWechat
 from workwechat_assist.corporation.models import CorpApp, Corporation
+from config.settings.base import AGENT_ID
 import logging
 
 from .serializers import UserSerializer, UserRegSerializer
@@ -87,7 +88,7 @@ def work_wx_login(request):
         return Response(result)
 
     try:
-        myapp = CorpApp.objects.get(corp=corp, agent_id='contact')
+        myapp = CorpApp.objects.get(corp=corp, agent_id=AGENT_ID)
     except CorpApp.DoesNotExist:
         myLogger.error('应用获取失败')
         result['message'] = '应用获取失败'
@@ -95,16 +96,18 @@ def work_wx_login(request):
 
     wechat = WorkWechat(myapp)
 
-    status, res = wechat.get_userid(code)
-    if not status:
+    sts, res = wechat.get_userid(code)
+    if not sts:
         result['message'] = res.get('errmsg')
         return Response(result)
+    myLogger.debug(res)
     userid = res.get('UserId')
-    status, res = wechat.get_user(userid)
-    if not status:
+    sts, res = wechat.get_user(userid)
+    if not sts:
         result['message'] = res.get('errmsg')
         return Response(result)
 
+    myLogger.debug(res)
     # The account is not in active state
     if res.get('status') != 1:
         result['message'] = 'account[{0}] is not in active state'.format(res.get('userid'))
@@ -117,6 +120,7 @@ def work_wx_login(request):
         user.gender = res.get('gender')
         user.avatarUrl = res.get('avatar')
         user.email = res.get('email')
+        user.is_staff = True
         user.save()
 
     payload = jwt_payload_handler(user)
@@ -133,7 +137,5 @@ def work_wx_login(request):
     result['result'] = 'OK'
 
     return Response(result, status=status.HTTP_200_OK)
-
-
 
 
