@@ -1,5 +1,6 @@
 from django.db import models
 from django.utils import timezone
+import uuid
 import datetime
 # Create your models here.
 
@@ -90,6 +91,10 @@ class Tag(models.Model):
         return '{0}: {1}'.format(self.corp.name, self.tagname)
 
 
+def gen_naruto():
+    return uuid.uuid3(uuid.NAMESPACE_URL, 'naruto')
+
+
 class Member(models.Model):
     STATUS_CHOICES = (
         (1, 'ACTIVE'),
@@ -104,6 +109,7 @@ class Member(models.Model):
     id = models.BigAutoField(primary_key=True)
     corp = models.ForeignKey(Corporation, related_name='members', on_delete=models.CASCADE, verbose_name='所属企业')
     userid = models.CharField(verbose_name='成员ID', max_length=64)
+    naruto = models.CharField(verbose_name='Naruto', max_length=64, default=gen_naruto, unique=True)
     open_userid = models.CharField(verbose_name='成员OpenID', max_length=64, blank=True,)
     name = models.CharField(verbose_name='成员名称', max_length=64)
     alias = models.CharField(verbose_name='成员别名', max_length=32, blank=True)
@@ -137,6 +143,10 @@ class Member(models.Model):
 
     def __str__(self):
         return '{0} {1}'.format(self.corp.name, self.name)
+
+    def refresh_naruto(self):
+        self.naruto = uuid.uuid3(uuid.NAMESPACE_URL, self.userid)
+        self.save()
 
 
 class DepartmentMemberRelationShip(models.Model):
@@ -186,6 +196,7 @@ class ExternalAttr(models.Model):
     def __str__(self):
         type_info = ['文本', '网页', '小程序']
         return '{0} {1}属性: {2}'.format(self.corp.name, type_info[self.type], self.name)
+
 
 
 

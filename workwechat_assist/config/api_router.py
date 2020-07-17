@@ -7,6 +7,8 @@ from workwechat_assist.corporation.api.views import CorporationViewSet, CorpAppV
     MemberViewSet, TagViewSet
 from workwechat_assist.externalcontact.api.views import ContactMeViewSet, CustomerViewSet, \
     CustomerFollowUserRelationshipViewSet, TagGroupViewSet, TagViewSet, GroupChatViewSet, GroupMessageViewSet
+from workwechat_assist.material.api.views import MaterialImageViewSet, MaterialTempViewSet
+from workwechat_assist.moment.api.views import MomentViewSet
 
 if settings.DEBUG:
     router = DefaultRouter()
@@ -26,6 +28,9 @@ router.register('taggroup', TagGroupViewSet)
 router.register('tag', TagViewSet)
 router.register('groupchat', GroupChatViewSet)
 router.register('groupmsg', GroupMessageViewSet)
+router.register('mtimage', MaterialImageViewSet)
+router.register('mttemp', MaterialTempViewSet)
+router.register('moment', MomentViewSet)
 
 
 app_name = 'api'

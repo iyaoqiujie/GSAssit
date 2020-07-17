@@ -13,6 +13,7 @@ from rest_framework_jwt.authentication import JSONWebTokenAuthentication
 from rest_framework import filters
 from django_filters.rest_framework import DjangoFilterBackend
 import logging
+import uuid
 from workwechat_assist.corporation.models import Corporation, CorpApp, Department, Member, \
     DepartmentMemberRelationShip, Tag, ExternalAttr
 from .serializers import CorporationSerializer, CorpAppSerializer, DepartmentSerializer, MemberSerializer, \
@@ -108,6 +109,7 @@ class MemberViewSet(viewsets.ModelViewSet):
             myLogger.debug(u)
             myLogger.debug(type(u))
             m, created = Member.objects.get_or_create(corp=corp, userid=u.get('userid'))
+            m.naruto = uuid.uuid3(uuid.NAMESPACE_URL, m.userid)
             m.name = u.get('name')
             m.position = u.get('position')
             m.mobile = u.get('mobile')

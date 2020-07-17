@@ -239,8 +239,9 @@ class TagSerializer(serializers.ModelSerializer):
 
         group_name = validated_data.get('group_name')
         tagname = validated_data.get('tagname')
-        status, res = WorkWechat(myapp).create_corp_tag(group_name=group_name, tagname_li=[tagname,])
+        status, res = WorkWechat(myapp).create_corp_tag(group_name=group_name, tagname_li=[tagname])
         if not status:
+            myLogger.error(res.get('errmsg'))
             raise serializers.ValidationError(res.get("errmsg"))
 
         myLogger.info('Successfully created the tag: {0} under group: {1}'.format(tagname, group_name))

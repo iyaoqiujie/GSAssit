@@ -405,6 +405,19 @@ class WorkWechat(object):
         media_file = requests.get(url)
         return media_file
 
+    def upload_image(self, media_file):
+        """
+            上传媒体文件
+            参数	必须	说明
+            access_token	是	调用接口凭证
+            type	是	媒体文件类型，分别有图片（image）、语音（voice）、视频（video），普通文件(file)
+            media	是	form-data中媒体文件标识，有filename、filelength、content-type等信息
+        """
+        url = "%s/media/uploadimg?access_token=%s" % (self.url_prefix, self.access_token)
+        data = {"media": media_file}
+        status, res = self.__post_file(url, data)
+        return status, res
+
     # 发送消息
     def send_msg_to_user(self, content, touser=None, toparty=None, totag=None, safe=0, msgtype="text", **kwargs):
         """
